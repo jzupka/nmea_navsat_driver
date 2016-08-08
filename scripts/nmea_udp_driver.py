@@ -32,30 +32,31 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import serial
+import socket
 
 import rospy
 
 import libnmea_navsat_driver.driver
 
 if __name__ == '__main__':
-    rospy.init_node('nmea_serial_driver')
+    rospy.init_node('nmea_udp_driver')
 
-    serial_port = rospy.get_param('~port','/dev/ttyUSB0')
-    serial_baud = rospy.get_param('~baud',4800)
+    bind_ip = rospy.get_param('~bind_ip','10.0.20.254')
+    port = rospy.get_param('~port',1111)
+
     frame_id = libnmea_navsat_driver.driver.RosNMEADriver.get_frame_id()
 
     try:
-        GPS = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=2)
-
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind((bind_ip, port))
         driver = libnmea_navsat_driver.driver.RosNMEADriver()
         while not rospy.is_shutdown():
-            data = GPS.readline().strip()
-            print (data)
+            data = sock.recvfrom(1000)[0].strip()
+            print data
             try:
                 driver.add_sentence(data, frame_id)
             except ValueError as e:
                 rospy.logwarn("Value error, likely due to missing fields in the NMEA message. Error was: %s. Please report this issue at github.com/ros-drivers/nmea_navsat_driver, including a bag file with the NMEA sentences that caused it." % e)
 
     except rospy.ROSInterruptException:
-        GPS.close() #Close GPS serial port
+        sock.close() #Close GPS udp

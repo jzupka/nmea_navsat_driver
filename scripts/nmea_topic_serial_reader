@@ -52,6 +52,7 @@ if __name__ == '__main__':
 
     try:
         GPS = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=2)
+        print GPS
         while not rospy.is_shutdown():
             data = GPS.readline().strip()
 
